@@ -4,6 +4,15 @@ A reusable spec for producing **chaptered, diagram-rich, vocabulary-disciplined 
 
 Reference implementation: `sr-iov/sr-iov-dossier.html` (SR-IOV, hardware → kernel → KVM → Kubernetes → KubeVirt). Read it before starting if it exists; it is the shape you are aiming for.
 
+**Pick the right theme first.** Two dossier looks live in `~/workspace/learning/`, and they must never be mixed in one file:
+
+| The deliverable is | Use | Look |
+|---|---|---|
+| A teaching document with chapters and a narrative spine | **this file** (referred to elsewhere as `AGENT.md`) | dark blue hero gradient, Mermaid, glossary |
+| An audit, a comparison, a packet walk, a score card, a patterns catalogue | `SINGLE_DOSSIER_THEME.md` | light "field dossier", Archivo + IBM Plex Mono, verdict stamps, hand-written SVG |
+
+If you are building the second kind, follow that file and **drop §6.2's stylesheet entirely**. The prose rules in §4.1 and §4.6 apply to both.
+
 ---
 
 ## 0. What you are producing
@@ -123,7 +132,30 @@ Tag each with a layer tag. Layer tags are topic-specific — invent 4–6 for th
 - Occasional dry humour, never breathless. "This is wonderful for performance and terrifying for security."
 - Prose first. Bullet lists only for genuinely enumerable things: commands, checklists, knob tables.
 
-**Banned words and moves** (they read as machine-written): *leverage, delve, seamless, robust, cutting-edge, in today's world, it's important to note, smoking gun, leak (as metaphor), unlock, supercharge, game-changer, journey (except the literal spine), dive deep, at the end of the day.* Also banned: three-item lists of adjectives, sentences that restate the previous sentence, and paragraphs that only announce what the next paragraph will say.
+**Banned words, group one — they read as machine-written:** *leverage, delve, seamless, robust, cutting-edge, in today's world, it's important to note, smoking gun, unlock, supercharge, game-changer, journey (except the literal spine), dive deep, at the end of the day.*
+
+**Banned words, group two — metaphors where a literal word exists.** These have specific replacements, and they are the ones that survive review and get caught later:
+
+| Do not write | Write |
+|---|---|
+| substrate | networking layer, or CNI |
+| route leak | route import |
+| leak (as metaphor, anywhere) | the literal thing that happens |
+| load bearing | this matters because … |
+| survives | still true, still there |
+| edge, sharp edge | problem, trap |
+| hurt, bites | the literal failure |
+
+*(If a skill or tool you are using has `edge` as a status value in its own vocabulary, that is a data label and not prose. The ban is on prose.)*
+
+**Banned sentence shapes.** All of these read as generated, and three of them are the hardest habits to drop:
+
+- **No "X, not Y" contrasts.** Not *"a janitor, not its manager"*. State what it is, once.
+- **No negative listing** — *"not X, not Y, not Z"*. Say what is there.
+- **No metaphor nouns** used as the subject of a claim: *door*, *estate*, *death row*. State the fact.
+- **Em-dash-heavy prose.** A dash in a definition list or a reference line is fine; a paragraph with three of them is not. Use a full stop.
+- Three-item lists of adjectives; a sentence that restates the previous one; a paragraph that only announces the next one.
+- **Objects are "it".** A pod is never "she" or "her".
 
 ### 4.2 Techniques that make this format work
 
@@ -137,6 +169,7 @@ Steal these deliberately, they are what the reference implementation does:
 - **Table for the knob list.** When there are 4+ settings, a two-column *knob → what it actually does in the hardware/system* table beats six paragraphs.
 - **Separate stable from drifting.** One table per volatile chapter: "universal architecture" vs "vendor/version specifics". Date the volatile side ("as of 2026").
 - **Analogies, one per concept, then drop them.** "The PF owns the flat, the VFs are tenants with keys to one room each." Do not extend an analogy past its first paragraph.
+- **An analogy has to carry a concept, never a narrative.** The test: remove the analogy — did a mechanism become harder to understand, or did the page just get less lively? If the second, cut it. "The apiserver is a bulletin board" earns its place because it explains who reads what. "You live at packet time", "the pod lands", "count the estate" are story-stitching, and they are the first thing a reader of this format complains about. Personification is under the same test.
 
 ### 4.3 Chapter anatomy
 
@@ -152,7 +185,7 @@ Every chapter, in this order:
 8. **Check yourself** — 2–3 questions answerable *only* by someone who read the chapter, **each shipping its answer behind a toggle**. Not trivia; make at least one a "trace the path" or "predict the value" question. Answers are specified in §4.5 and they are not optional.
 9. **Go deeper** — 2–5 references with layer tag and why/when annotation
 
-Chapter 0 is a prologue that frames the problem and its tension, and introduces the minimum vocabulary. The last chapter is an epilogue: honest limitations, sharp edges, 2-paragraph previews of where the field went next, then the merged glossary and master reference list.
+Chapter 0 is a prologue that frames the problem and its tension, and introduces the minimum vocabulary. The last chapter is an epilogue: honest limitations, the traps that remain, 2-paragraph previews of where the field went next, then the merged glossary and master reference list.
 
 ### 4.4 Depth guardrail
 
@@ -220,6 +253,17 @@ if(ctl){ctl.addEventListener('click',()=>{
 window.addEventListener('beforeprint',()=>document.querySelectorAll('details.ans').forEach(d=>d.open=true));
 ```
 
+### 4.6 Name things, never index them
+
+**Never refer to anything by a bare number or code.** Not "N7", not "D4", not "Section 7", not "§26", not "R6". The reader does not hold your index in their head, and a bare code turns a sentence into a lookup they cannot perform.
+
+- Name it in words, every time: *"the policy chapter"*, not *"chapter 7"* alone; *"the HAProxy load balancer chapter of `docs/platform-tasks.md`"*, not *"section 7"*.
+- A number **after** the name is a fine pointer: *"the policy chapter (chapter 7)"*. A number alone never is.
+- This covers prose, diagram labels, captions, recaps, answers, and anything you say in chat about the document.
+- It applies to **your own** invented labels too. If you number a catalogue of patterns `R1…R7`, you must still call them by name in the text — *"decide and program are different verbs"*, not *"R6"*. Numbering them for the eye is fine; referring to them by number is not.
+
+This one gets caught angrily rather than politely, because it makes a status report or a design question unanswerable.
+
 ---
 
 ## 5. Phase 3 — Diagrams
@@ -246,7 +290,7 @@ window.addEventListener('beforeprint',()=>document.querySelectorAll('details.ans
 
 Plan ~1.5 diagrams per chapter and always include: (a) the "three approaches compared" diagram in chapter 0 or 1, (b) the core structural block diagram, (c) a protocol/negotiation sequence diagram, (d) a full-stack tower, (e) a final end-to-end walk.
 
-### 5.3 Mermaid gotchas that will bite you
+### 5.3 Mermaid gotchas that will catch you
 
 - **Quote every label**: `A["text here"]`. Unquoted parentheses, colons and slashes break the parse.
 - **No `&`, `<`, `>`** anywhere in a label — the browser eats them as HTML. Write "and", "under", "over".
@@ -603,6 +647,8 @@ Name these explicitly so the user knows the format can grow:
 - **A one-page cheat sheet** — the tower diagram, the command list, and the glossary, printable on one sheet.
 - **Trim to a target** — if length overshot, offer the specific cuts rather than trimming silently.
 
+And for a research or audit deliverable rather than a teaching one, **end it with sponsor-facing open questions** — the decisions the document cannot make for the reader, stated as questions they can answer.
+
 ### 8.5 On revision
 
 - Keep the vocabulary audit green after every edit. Adding a paragraph to chapter 3 can break chapter 2's ordering.
@@ -645,6 +691,10 @@ Before you say it is done:
 - [ ] Merged glossary contains every per-chapter term
 - [ ] Master reference list grouped by layer, filter buttons work
 - [ ] Every URL verified this session; unverifiable ones named, not guessed
+- [ ] Prose scrubbed against **both** ban lists in §4.1, including the sentence shapes — "X, not Y", negative listing, metaphor nouns, em-dash pile-ups
+- [ ] Nothing referred to by a bare number or code anywhere, including your own labels (§4.6)
+- [ ] Every analogy passes the carry-a-concept test (§4.2); no story-stitching
+- [ ] Right theme for the deliverable, and not mixed with the other one
 - [ ] Honest final report: word count vs target, anything unverified, deviations from spec
 - [ ] Follow-up probe questions asked
 - [ ] After a quiz round: dated revision card in the document (§8.3), its section id added to the audit's vocabulary skip list, and an entry in the back-matter TOC
