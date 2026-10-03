@@ -25,7 +25,7 @@ One HTML file. Inside it:
 - **Cumulative glossary** — per-chapter "New words", fully merged at the end
 - **Check-yourself questions with answers behind a toggle** — every question, every chapter (§4.5)
 - **Verified references** per chapter, layer-tagged
-- Sticky table of contents, per-chapter reading times, layer-tag filter, print CSS
+- Sticky table of contents, per-chapter reading times, layer-tag filter, **zoomable diagrams** (§6.5), print CSS
 
 You are not writing documentation. You are not writing a tutorial. You are writing the thing a smart colleague would write on a whiteboard over two hours, if the whiteboard were infinite and they had time to draw properly.
 
@@ -271,6 +271,7 @@ This one gets caught angrily rather than politely, because it makes a status rep
 ### 5.1 Rules
 
 - Mermaid, in `<div class="mermaid">`. The div's text *is* the source, so it stays readable if the CDN fails — do not duplicate the source in a `<details>` block, it doubles the file for nothing.
+- **Every diagram sits in `<figure class="dia">` and can be zoomed.** A wide sequence diagram or the full-stack tower is unreadable at the width of the text column. The zoom script (§6.5) gives every `figure.dia` a button that opens its diagram full screen. You write no markup per figure, but a bare `<div class="mermaid">` outside a figure gets no button.
 - **A diagram must never contain a term the text has not yet defined.** Audit labels the same way you audit prose.
 - Use the same bolded vocabulary as the text — identical words, not synonyms.
 - Every diagram gets a caption starting with **`Diagram N.M — <what it is>.`** then "Notice ..." — tell the reader what to look at. A caption that only restates the title is wasted.
@@ -340,12 +341,12 @@ Single file. No build step. Everything inline except the Mermaid CDN import.
 <footer>…</footer>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({startOnLoad:true, theme:'neutral', flowchart:{htmlLabels:true, curve:'basis'}, securityLevel:'loose'});
+  mermaid.initialize({startOnLoad:true, deterministicIds:true, theme:'neutral', flowchart:{htmlLabels:true, curve:'basis'}, securityLevel:'loose'});
 </script>
 <script>
-  /* plus the two answer-toggle handlers from 4.5: the reveal-all control
-     and the beforeprint hook. Both are required; a collapsed <details>
-     does not print. */
+  /* plus the two answer-toggle handlers from 4.5 (the reveal-all control
+     and the beforeprint hook) and the zoom script from 6.5. All three are
+     required; a collapsed <details> does not print. */
   document.querySelectorAll('#filters button').forEach(b=>{
     b.addEventListener('click',()=>{
       b.classList.toggle('off');
@@ -360,11 +361,13 @@ Single file. No build step. Everything inline except the Mermaid CDN import.
 </html>
 ```
 
+**Keep `deterministicIds:true`.** Without it Mermaid names each SVG after the clock. Two diagrams rendered in the same millisecond get the same id, and one of them comes out blank or draws into the other. In headless Chrome this happens to most diagrams on the page. The zoom copies each SVG with its id, so a collision shows up in the zoomed copy as well. Rendering each block yourself with `mermaid.render('dia-'+i, src)`, as `sr-iov-networking/gpu-programming-dossier.html` does, also works.
+
 **Build it incrementally.** Write the skeleton with `<!--APPEND-->` before `</main>`, then add 1–2 chapters per edit by replacing that marker with `newChapters + <!--APPEND-->`. Remove the marker at the end. Do not try to emit 20k words in one tool call — a truncated write costs more to repair than three clean ones.
 
 ### 6.2 Stylesheet
 
-Copy this wholesale; it is tuned and it prints well. It does **not** include the answer-toggle rules — those live with their markup in §4.5, and you need both.
+Copy this wholesale; it is tuned and it prints well. It does **not** include the answer-toggle rules or the zoom rules. Those live with their markup and script, in §4.5 and §6.5, and you need all three.
 
 ```css
 :root{
@@ -448,9 +451,110 @@ Also state, in this card, **how to use the Check-yourself blocks and how to get 
 
 Put the reveal-all button in the same paragraph.
 
+Then say, in one line, that **diagrams zoom**. A reader on a laptop screen will otherwise squint at the wide ones and never find the button:
+
+> **Diagrams.** Every diagram has a *zoom* button in its corner. It opens the picture full screen: scroll to zoom, drag to pan, double-click to fit, Esc to close.
+
+If the card already has a diagram-conventions paragraph (what dotted and thick arrows mean), add these two sentences to the end of it.
+
 ### 6.4 Escaping
 
 Code blocks containing HTML or XML must be entity-escaped (`&lt;`, `&gt;`, `&amp;`). YAML, shell and JSON usually need nothing. Check any `<` in a `<pre>` before you finish.
+
+### 6.5 Zoomable diagrams
+
+Mermaid draws every diagram at the width of the text column, about 80 characters. A sequence diagram with six participants, or the full-stack tower, comes out with labels a few pixels high. So every figure gets a zoom button that opens its diagram full screen.
+
+**How it works.** One script runs at page load and adds a `⤢ zoom` button to the top-right corner of every `figure.dia`. On click, it copies the figure's rendered `<svg>` into a single full-screen layer and fits it to the window. In that layer the wheel or a pinch zooms around the pointer, dragging pans, a double-click fits again, `+` `-` `0` work from the keyboard, and Esc closes. The bar at the top shows the caption up to its first full stop. That is the `Diagram N.M — <what it is>` part (§5.1), which is one more reason every caption starts that way.
+
+The script reads the SVG when the button is clicked, so it works with `startOnLoad:true` and needs nothing per figure. The rules:
+
+- Every diagram sits in `<figure class="dia">`. A bare `<div class="mermaid">` gets no button.
+- Keep `deterministicIds:true` (§6.1). The zoom copies the SVG together with its `id` and the `<style>` scoped to that id.
+- A hand-drawn `<svg>` inside a `figure.dia` zooms too. Give it a `viewBox`, because the script reads the diagram's size from there.
+- Say that diagrams zoom in the how-to-read card (§6.3).
+- Open at least one diagram in the zoom layer in a browser before delivery (§7).
+
+Reference implementation: `sr-iov-networking/gpu-programming-dossier.html`. The SR-IOV, GPU-sharing and Ceph dossiers carry the same code.
+
+CSS, appended to the §6.2 stylesheet:
+
+```css
+/* zoomable figures: a button in each figure's corner opens its diagram full screen */
+figure.dia{position:relative;padding-top:2.2rem}
+figure.dia .zoombtn{position:absolute;top:.45rem;right:.55rem;font:inherit;font-size:.7rem;letter-spacing:.04em;cursor:zoom-in;border:1px solid var(--line);background:#fff;color:var(--ink-soft);border-radius:999px;padding:.1rem .55rem;opacity:.8}
+figure.dia .zoombtn:hover{opacity:1;border-color:var(--accent);color:var(--accent)}
+#zoomlayer{position:fixed;inset:0;z-index:50;background:rgba(13,27,42,.88);display:none}
+#zoomlayer.on{display:block}
+#zoomlayer .zl-stage{position:absolute;inset:3.1rem .9rem .9rem;overflow:hidden;background:#fff;border-radius:12px;cursor:grab;touch-action:none}
+#zoomlayer .zl-stage.drag{cursor:grabbing}
+#zoomlayer .zl-inner{transform-origin:0 0;position:absolute;left:0;top:0}
+#zoomlayer .zl-inner svg{display:block;max-width:none!important}
+#zoomlayer .zl-bar{position:absolute;top:.6rem;left:.9rem;right:.9rem;display:flex;gap:.4rem;align-items:center;color:#cfe0f3;font-size:.82rem}
+#zoomlayer .zl-bar button{font:inherit;cursor:pointer;border:1px solid #3d5a78;background:#12304d;color:#eaf2fb;border-radius:999px;padding:.18rem .75rem}
+#zoomlayer .zl-bar .zl-cap{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-left:.6rem}
+@media print{#zoomlayer,.zoombtn{display:none!important}}
+```
+
+Script, at the end of the classic `<script>` in §6.1, after the answer-toggle handlers:
+
+```js
+/* Zoom: every figure gets a button that opens its diagram full screen.
+   Wheel or pinch zooms around the pointer, drag pans, double-click fits, Esc closes. */
+(function(){
+  const layer=document.createElement('div'); layer.id='zoomlayer';
+  layer.innerHTML='<div class="zl-bar"><button type="button" data-z="in">+</button><button type="button" data-z="out">&minus;</button><button type="button" data-z="fit">Fit</button><button type="button" data-z="close">Close (Esc)</button><span class="zl-cap"></span></div><div class="zl-stage"><div class="zl-inner"></div></div>';
+  document.body.appendChild(layer);
+  const stage=layer.querySelector('.zl-stage'), inner=layer.querySelector('.zl-inner'), cap=layer.querySelector('.zl-cap');
+  let s=1,x=0,y=0,w=0,h=0,drag=null;
+  const apply=()=>{inner.style.transform='translate('+x+'px,'+y+'px) scale('+s+')';};
+  function fit(){
+    if(!w||!h) return;
+    const W=stage.clientWidth, H=stage.clientHeight;
+    s=Math.min(W/w,H/h)*0.94; x=(W-w*s)/2; y=(H-h*s)/2; apply();
+  }
+  function zoomAt(f,cx,cy){
+    const r=stage.getBoundingClientRect(), px=cx-r.left, py=cy-r.top;
+    x=px-(px-x)*f; y=py-(py-y)*f; s*=f; apply();
+  }
+  function zoomMid(f){const r=stage.getBoundingClientRect(); zoomAt(f,r.left+r.width/2,r.top+r.height/2);}
+  function open(fig){
+    const svg=fig.querySelector('svg'); if(!svg) return;
+    const c=svg.cloneNode(true);
+    const vb=(svg.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);
+    const r=svg.getBoundingClientRect();
+    w=(vb.length===4&&vb[2])?vb[2]:r.width; h=(vb.length===4&&vb[3])?vb[3]:r.height;
+    c.setAttribute('width',w); c.setAttribute('height',h);
+    c.style.maxWidth='none'; c.style.width=w+'px'; c.style.height=h+'px';
+    inner.innerHTML=''; inner.appendChild(c);
+    const fc=fig.querySelector('figcaption'); cap.textContent=fc?fc.textContent.replace(/\s+/g,' ').split(/\.\s/)[0]:'';
+    layer.classList.add('on'); document.body.style.overflow='hidden';
+    requestAnimationFrame(fit);
+  }
+  function close(){layer.classList.remove('on'); document.body.style.overflow=''; inner.innerHTML='';}
+  layer.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    ({in:()=>zoomMid(1.25),out:()=>zoomMid(0.8),fit:fit,close:close})[b.dataset.z]();
+  });
+  stage.addEventListener('wheel',e=>{e.preventDefault(); zoomAt(e.deltaY<0?1.12:1/1.12,e.clientX,e.clientY);},{passive:false});
+  stage.addEventListener('pointerdown',e=>{drag={px:e.clientX,py:e.clientY,x:x,y:y}; stage.classList.add('drag'); stage.setPointerCapture(e.pointerId);});
+  stage.addEventListener('pointermove',e=>{if(!drag) return; x=drag.x+e.clientX-drag.px; y=drag.y+e.clientY-drag.py; apply();});
+  stage.addEventListener('pointerup',()=>{drag=null; stage.classList.remove('drag');});
+  stage.addEventListener('dblclick',fit);
+  window.addEventListener('resize',()=>{if(layer.classList.contains('on')) fit();});
+  document.addEventListener('keydown',e=>{
+    if(!layer.classList.contains('on')) return;
+    if(e.key==='Escape') close(); else if(e.key==='+'||e.key==='=') zoomMid(1.25); else if(e.key==='-') zoomMid(0.8); else if(e.key==='0') fit();
+  });
+  document.querySelectorAll('figure.dia').forEach(fig=>{
+    const b=document.createElement('button'); b.type='button'; b.className='zoombtn';
+    b.textContent='⤢ zoom'; b.title='Open full screen: scroll to zoom, drag to pan, Esc to close';
+    b.addEventListener('click',()=>open(fig)); fig.appendChild(b);
+  });
+})();
+```
+
+**Adding zoom to an older dossier.** Append the CSS before `</style>`, the script before the last `</script>`, `deterministicIds:true` to `mermaid.initialize`, and the line to the how-to-read card. Nothing else changes.
 
 ---
 
@@ -483,6 +587,12 @@ for i, blk in enumerate(re.findall(r'<div class="check">(.*?)</div>', s, re.S), 
     thin = [n for n in short if n < 35]
     print('check block', i, 'q=%d a=%d' % (q, d), flag, ('thin answers: %s' % thin) if thin else '')
 print("reveal-all control:", s.count('answerctl'), "| beforeprint hook:", s.count('beforeprint'))
+
+# --- 1c. zoom (6.5): script, unique mermaid ids, every diagram in a figure --
+print("zoom script:", 'zoomlayer' in s and 'zoombtn' in s,
+      "| unique ids:", 'deterministicIds:true' in s or 'mermaid.render(' in s,
+      "| diagrams outside a figure:", s.count('<div class="mermaid">')
+          - len(re.findall(r'<figure class="dia">\s*<div class="mermaid">', s)))
 
 # --- 2. mermaid sanity ---------------------------------------------------
 for i, m in enumerate(re.findall(r'<div class="mermaid">\n(.*?)\n</div>', s, re.S), 1):
@@ -540,6 +650,14 @@ Then fix, by hand:
 - Any diagram label containing an undefined term — the script won't catch these, so re-read all labels once against the glossary.
 - Reading times in the TOC and in each chapter's metadata line must match the measured word counts (÷200 wpm). **Patch them by line number, not by string replace** — repeated `"8 min · HW"` strings will replace each other's output and silently scramble.
 - Confirm the spine sentence exists in all N metadata lines.
+
+**Then render it, if a browser is available.** Headless Chrome is enough:
+
+```sh
+google-chrome-stable --headless=new --virtual-time-budget=30000 --dump-dom "file://$PWD/dossier.html" > /tmp/dom.html
+```
+
+In the dumped DOM, every `div.mermaid` should hold an `<svg>` with a `viewBox`, no two SVGs should share an `id`, and no `div.mermaid` should contain "Syntax error". To check the zoom, copy the file, add a script that waits for the SVGs, clicks one `.zoombtn` and writes the result into an attribute, and look for `#zoomlayer.on` with an `<svg>` inside. Two traps: search for "Syntax error" inside the diagram divs only, because your own test script contains the string and matches itself; and a headless `--screenshot` ignores scrolling, so to look at one figure, move it to the top of an empty `<body>` first.
 
 Report the audit result honestly in your final message, including anything you could not verify (e.g. "diagrams not visually rendered — no browser available").
 
@@ -669,6 +787,8 @@ And for a research or audit deliverable rather than a teaching one, **end it wit
 | Over length | Breadth crept into side topics | Cut side topics; never cut vocabulary discipline, diagrams, or the recap blocks |
 | Links rot / are wrong | Guessed URLs | Verify with web tools; name-without-URL when unverifiable |
 | Truncated HTML mid-diagram | Tried to write too much per tool call | 1–2 chapters per edit, `<!--APPEND-->` marker pattern |
+| Wide diagram unreadable, labels a few pixels high | Drawn at column width with no way to enlarge it | §6.5 zoom script; every diagram inside `figure.dia` |
+| A diagram renders blank, or two draw into one | Mermaid ids come from the clock and collide | `deterministicIds:true` (§6.1) |
 | Reader is confident and wrong | Check-yourself questions shipped without answers | §4.5 — every question gets a toggled answer, with the near-miss named |
 | Quiz results feel good, retention does not | Pasted A/B/C/D; reader pattern-matched instead of retrieving | §8.2 — use the harness question tool, score the reason not the letter |
 | Reader answers every fact and still cannot debug | Every question was recall-shaped; the document never asked "here is a symptom, what happened?" | Ask both framings, and record the split in the revision card (§8.3) |
@@ -687,6 +807,7 @@ Before you say it is done:
 - [ ] All diagram labels use only defined terms
 - [ ] Mermaid blocks parse-checked, no `&`/`<`/`>`, no parens in participant aliases
 - [ ] HTML nesting clean, no leftover `<!--APPEND-->`
+- [ ] Zoom (§6.5): CSS and script present, `deterministicIds:true`, every diagram inside `figure.dia`, how-to-read card says diagrams zoom, one diagram opened in the zoom layer in a browser
 - [ ] Reading times match measured word counts, in both TOC and chapter headers
 - [ ] Merged glossary contains every per-chapter term
 - [ ] Master reference list grouped by layer, filter buttons work

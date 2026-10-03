@@ -71,6 +71,28 @@ The quizzing follows the **Alvar method** — it hooks into the `probe` / `teach
 `learn-visual` / `learn-verify` skills when they're installed, and falls back to
 the same protocol inline when they aren't.
 
+### [`BOOK_GUIDED_BLOG_STYLE_LEARNING.md`](./BOOK_GUIDED_BLOG_STYLE_LEARNING.md) — book-guided dossier builder
+
+For **reading a book properly**. The book sets the order, the scope and the
+facts; the agent builds a folder of blog-style pages around it: a hub
+(`index.html`, progress, glossary, systems index) and one page per chapter,
+generated as I reach it, plus a capstone that runs one spine through the
+whole book at the end.
+
+Each chapter page is a sandwich: a **before-you-read** half (~10 min: the
+question the chapter answers, the words I'll meet, a mental-model diagram, a
+reading guide with page ranges, three questions to carry in), then the book,
+then an **after-you-read** half (~20 min: those questions answered, the chapter
+on one screen, key learnings with worked examples and page refs, "meet the
+system" cards that assume I've never used Kubernetes or Kafka, 2–3 exercises
+with a hint ladder, the book's own questions answered if it has any). An Alvar
+quiz card sits on each side: a pre-read probe that tells me where to read
+closely, and a lock-in quiz whose findings go back into the page.
+
+Same voice, vocabulary and answer-toggle rules as `BLOG_STYLE_LEARNING.md`,
+restated so it works alone, and a multi-file audit script that reads its term
+map from the dossier's `NOTES.md`.
+
 ---
 
 ## Output theme
@@ -102,6 +124,7 @@ large topic. Pick one per file and don't blend their stylesheets.
 | Set the rules for an agent working in my repo | `style-prompts/codebase-agent-interaction.md` |
 | Learn a topic by building it, from a book | `SELF_STUDY.md` |
 | Learn a large topic properly — chapters, diagrams, quiz | `BLOG_STYLE_LEARNING.md` |
+| Read a book with a primer, exercises and quiz around each chapter | `BOOK_GUIDED_BLOG_STYLE_LEARNING.md` |
 | Capture a quick learning or an audit as one document | `SINGLE_DOSSIER_THEME.md` |
 
 ---
@@ -110,13 +133,15 @@ large topic. Pick one per file and don't blend their stylesheets.
 
 ### More learning paths
 
-The two that exist are book-based study (`SELF_STUDY.md`) and purposeful learning
-of one large topic (`BLOG_STYLE_LEARNING.md`). Coming:
+The ones that exist are book-based study by implementing (`SELF_STUDY.md`),
+purposeful learning of one large topic (`BLOG_STYLE_LEARNING.md`), and
+book-guided reading (`BOOK_GUIDED_BLOG_STYLE_LEARNING.md`). Coming:
 
 - [ ] **Project-assisted learning.** The project is the main thing; dossiers are
       where I record what I learned and what I'd improve, not the driver.
-- [ ] **Book-assisted learning dossier.** Inverse of the above — the book, its
+- [x] **Book-assisted learning dossier.** Inverse of the above — the book, its
       quizzes and its exercises drive, and the dossier follows along.
+      Done: [`BOOK_GUIDED_BLOG_STYLE_LEARNING.md`](./BOOK_GUIDED_BLOG_STYLE_LEARNING.md).
 - [ ] **Research-paper implementor.** The agent first helps me write the version
       the paper wants to improve on — so I actually feel the problem it's solving
       — and only then works toward the paper's solution.
